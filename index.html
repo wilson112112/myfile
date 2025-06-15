@@ -2,10 +2,36 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewpoint" content="width=device-width,initial-scale=0.5,maximum-scale=2.0,user-scalable=yes" />
+    <meta name="viewport" content="width=device-width,initial-scale=0.5,maximum-scale=2.0,user-scalable=yes" />
     <title>自我介紹</title>
-    
     <style>
+        /* --- 密碼畫面樣式 --- */
+        #passwordOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000e0;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+        }
+        #passwordOverlay input {
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        #passwordOverlay button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        /* 以下是你原本的 CSS */
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
@@ -22,7 +48,6 @@
         nav ul {
             list-style: none;
             padding: 0;
-            
         }
         nav ul li {
             display: inline;
@@ -46,20 +71,17 @@
             overflow: hidden;
         }
         .container a:hover {
-            background-color: #575757;}
+            background-color: #575757;
+        }
         section {
             padding: 20px;
             margin: 20px 0;
             background: #fff;
             border-radius: 8px;
         }
-        h1 {
-            color: #ffffff;}
-        h2 {
-              color: #333;
-        }
-        h3 {
-            color: #ffffff;}
+        h1 { color: #ffffff; }
+        h2 { color: #fffbfb; }
+        h3 { color: #ffffff; }
         footer {
             text-align: center;
             padding: 10px 0;
@@ -86,12 +108,23 @@
             background-color: #575757;
         }
         .content {
-            margin-left: 220px; 
+            margin-left: 220px;
             padding: 20px;
         }
     </style>
 </head>
 <body>
+    <!-- 密碼覆蓋畫面 -->
+    <div id="passwordOverlay">
+        <h2>請輸入密碼進入網站</h2>
+        <input type="password" id="passwordInput" placeholder="輸入密碼">
+        <button onclick="checkPassword()">進入</button>
+        <p id="errorMessage" style="color: red; display: none;">密碼錯誤，請再試一次。</p>
+    </div>
+
+    <!-- 以下為你的原始內容 -->
+    <div id="mainContent" style="display: none;">
+        <body>
     <header>
         <div class="container">
             <h1 id="top">曾宥維 My file</h1>
@@ -174,5 +207,21 @@
     </div>
 
     
+</body>
+    </div>
+
+    <script>
+        function checkPassword() {
+            const correctPassword = "0112";  // 你可以自行更改密碼
+            const userInput = document.getElementById("passwordInput").value;
+
+            if (userInput === correctPassword) {
+                document.getElementById("passwordOverlay").style.display = "none";
+                document.getElementById("mainContent").style.display = "block";
+            } else {
+                document.getElementById("errorMessage").style.display = "block";
+            }
+        }
+    </script>
 </body>
 </html>
