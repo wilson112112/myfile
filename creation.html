@@ -563,12 +563,23 @@
       <h3>聯繫我 Contact Me</h3>
       <p>Have a question or want to collaborate? Send me a message!</p>
     </div>
-    <div>
-      <div class="contact-form">
-        <input type="email" id="contactEmail" placeholder="Your email address">
-        <button onclick="handleContact()">Send</button>
+    <div style="width:100%;max-width:480px;">
+      <div id="contactForm">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <input type="text" id="contactName" placeholder="Your name" style="padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;">
+          <input type="email" id="contactEmail" placeholder="Your email address" style="padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;">
+          <textarea id="contactMessage" placeholder="Your message..." rows="3" style="padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;resize:vertical;transition:border-color 0.2s;"></textarea>
+          <button onclick="handleContact()" id="sendBtn" style="padding:11px 22px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;text-align:center;">
+            Send Message
+          </button>
+          <p id="contactError" style="display:none;color:#e8304a;font-size:13px;margin-top:4px;"></p>
+        </div>
       </div>
-      <p class="contact-thanks" id="contactThanks">✓ Thanks! I'll get back to you soon.</p>
+      <div id="contactThanks" style="display:none;padding:20px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:8px;">✅</div>
+        <div style="font-weight:600;color:var(--text);font-size:15px;">Message sent!</div>
+        <div style="color:var(--text-muted);font-size:13px;margin-top:4px;">Thanks! I'll get back to you soon.</div>
+      </div>
     </div>
   </div>
 
@@ -596,15 +607,52 @@
     });
   });
 
-  function handleContact() {
-    const input = document.getElementById("contactEmail");
-    if (input.value && input.value.includes("@")) {
-      input.style.display = "none";
-      document.querySelector(".contact-form button").style.display = "none";
-      document.getElementById("contactThanks").style.display = "block";
-    } else {
-      input.style.borderColor = "var(--accent)";
-      setTimeout(() => input.style.borderColor = "", 1000);
+  async function handleContact() {
+    const name    = document.getElementById("contactName");
+    const email   = document.getElementById("contactEmail");
+    const message = document.getElementById("contactMessage");
+    const errEl   = document.getElementById("contactError");
+    const btn     = document.getElementById("sendBtn");
+
+    // Basic validation
+    errEl.style.display = "none";
+    if (!name.value.trim()) { showErr("Please enter your name."); return; }
+    if (!email.value || !email.value.includes("@")) { showErr("Please enter a valid email."); return; }
+    if (!message.value.trim()) { showErr("Please enter a message."); return; }
+
+    function showErr(msg) {
+      errEl.textContent = msg;
+      errEl.style.display = "block";
+    }
+
+    // Send via Formspree
+    btn.textContent = "Sending...";
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("https://formspree.io/f/maqdddqy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          name: name.value,
+          email: email.value,
+          message: message.value
+        })
+      });
+
+      if (res.ok) {
+        document.getElementById("contactForm").style.display = "none";
+        document.getElementById("contactThanks").style.display = "block";
+      } else {
+        const data = await res.json();
+        showErr(data.error || "Something went wrong. Please try again.");
+        btn.textContent = "Send Message";
+        btn.disabled = false;
+      }
+    } catch (e) {
+      showErr("Network error. Please check your connection and try again.");
+      btn.textContent = "Send Message";
+      btn.disabled = false;
     }
   }
 
