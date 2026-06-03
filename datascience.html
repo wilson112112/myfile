@@ -78,6 +78,7 @@
             font-weight: 400;
             letter-spacing: 0.01em;
             transition: color 0.2s;
+            cursor: pointer;
         }
 
         .nav-links a:hover { color: #fff; }
@@ -231,12 +232,44 @@
         }
 
         .max-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             font-size: 0.7rem;
             color: var(--text-soft);
             background: #f3f4f6;
             border: 1px solid var(--border);
-            padding: 2px 8px;
+            padding: 2px 4px 2px 9px;
             border-radius: 20px;
+            transition: border-color 0.18s, background 0.18s;
+        }
+
+        .max-badge:focus-within {
+            border-color: var(--blue);
+            background: #eff6ff;
+        }
+
+        .max-input {
+            width: 38px;
+            border: none;
+            background: transparent;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--blue);
+            text-align: center;
+            outline: none;
+            font-family: 'DM Sans', sans-serif;
+            padding: 0;
+            -moz-appearance: textfield;
+        }
+
+        .max-input::-webkit-outer-spin-button,
+        .max-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+        .max-edit-icon {
+            font-size: 0.62rem;
+            color: var(--text-soft);
+            padding-right: 2px;
         }
 
         .slider-body {
@@ -528,16 +561,102 @@
             from { opacity: 0; transform: translateY(18px); }
             to   { opacity: 1; transform: translateY(0); }
         }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
     </style>
 </head>
 <body>
 
+<!-- Modal Overlay -->
+<div id="helpModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.45); backdrop-filter:blur(4px); align-items:center; justify-content:center;" onclick="closeModal(event)">
+    <div style="background:#fff; border-radius:18px; max-width:560px; width:calc(100% - 40px); max-height:82vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.18); animation:modalIn 0.25s ease both;">
+
+        <!-- Modal Header -->
+        <div style="padding:28px 28px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+            <div>
+                <div style="font-size:0.68rem; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:#9ca3af; margin-bottom:6px;">How to use</div>
+                <div style="font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:600; color:#1c1c1c; line-height:1.2;">操作說明</div>
+            </div>
+            <button onclick="document.getElementById('helpModal').style.display='none'" style="background:#f3f4f6; border:none; border-radius:8px; width:32px; height:32px; font-size:1rem; cursor:pointer; color:#6b7280; flex-shrink:0; margin-top:4px; transition:background 0.15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">✕</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div style="padding:22px 28px 28px; font-family:'DM Sans',sans-serif; color:#374151; line-height:1.7; font-size:0.9rem;">
+
+            <!-- Step 1 -->
+            <div style="display:flex; gap:14px; margin-bottom:22px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:#dbeafe; color:#2563eb; font-weight:700; font-size:0.85rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">1</div>
+                <div>
+                    <div style="font-weight:600; color:#1c1c1c; margin-bottom:4px;">調整行為指標滑桿</div>
+                    <div style="color:#6b7280;">在左側「單一學生行為模擬」區域，拖曳四個滑桿輸入該學生的行為次數。右側預測結果會即時更新，顯示預估落點（高 / 中 / 低分群）及各行為達成率。</div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div style="display:flex; gap:14px; margin-bottom:22px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:#dbeafe; color:#2563eb; font-weight:700; font-size:0.85rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">2</div>
+                <div>
+                    <div style="font-weight:600; color:#1c1c1c; margin-bottom:4px;">上傳全班 CSV（選填）</div>
+                    <div style="color:#6b7280;">點擊「選擇 CSV 上傳」匯入全班資料。系統將以班級最高值自動校準基準值，並在頁面下方產生班級預測總覽報表。</div>
+                    <div style="margin-top:10px; background:#f7f5f1; border:1px solid #e2ded8; border-radius:8px; padding:10px 14px;">
+                        <div style="font-size:0.78rem; font-weight:600; color:#4b5563; margin-bottom:6px;">CSV 必填欄位</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                            <span style="background:#fff; border:1px solid #e2ded8; border-radius:5px; padding:2px 9px; font-size:0.76rem; font-family:monospace; color:#374151;">StudentID</span>
+                            <span style="background:#fff; border:1px solid #e2ded8; border-radius:5px; padding:2px 9px; font-size:0.76rem; font-family:monospace; color:#374151;">raisedhands</span>
+                            <span style="background:#fff; border:1px solid #e2ded8; border-radius:5px; padding:2px 9px; font-size:0.76rem; font-family:monospace; color:#374151;">VisITedResources</span>
+                            <span style="background:#fff; border:1px solid #e2ded8; border-radius:5px; padding:2px 9px; font-size:0.76rem; font-family:monospace; color:#374151;">AnnouncementsView</span>
+                            <span style="background:#fff; border:1px solid #e2ded8; border-radius:5px; padding:2px 9px; font-size:0.76rem; font-family:monospace; color:#374151;">Discussion</span>
+                        </div>
+                        <div style="margin-top:8px; font-size:0.76rem; color:#9ca3af;">可點擊「↓ 範例格式」下載正確的 CSV 樣板</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div style="display:flex; gap:14px; margin-bottom:22px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:#dbeafe; color:#2563eb; font-weight:700; font-size:0.85rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">3</div>
+                <div>
+                    <div style="font-weight:600; color:#1c1c1c; margin-bottom:4px;">解讀預測落點</div>
+                    <div style="color:#6b7280; margin-bottom:10px;">系統根據加權公式計算綜合分數，分為三個落點：</div>
+                    <div style="display:flex; flex-direction:column; gap:7px;">
+                        <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px;">
+                            <span style="font-weight:700; color:#16a34a; width:22px;">H</span>
+                            <span style="font-size:0.85rem; color:#374151;"><strong>高分群</strong>　綜合分數 ≥ 60　學習主動性高，通過率佳</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px;">
+                            <span style="font-weight:700; color:#b45309; width:22px;">M</span>
+                            <span style="font-size:0.85rem; color:#374151;"><strong>中分群</strong>　35 ≤ 分數 &lt; 60　表現尚可，有進步空間</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">
+                            <span style="font-weight:700; color:#dc2626; width:22px;">L</span>
+                            <span style="font-size:0.85rem; color:#374151;"><strong>低分群</strong>　分數 &lt; 35　有不及格風險，建議輔導介入</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weights -->
+            <div style="background:#f7f5f1; border:1px solid #e2ded8; border-radius:10px; padding:14px 16px;">
+                <div style="font-size:0.75rem; font-weight:600; color:#4b5563; margin-bottom:10px; letter-spacing:0.08em; text-transform:uppercase;">預測加權比例</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div style="font-size:0.82rem; color:#6b7280;">🙋 舉手發問</div><div style="font-size:0.82rem; font-weight:600; color:#2563eb;">26%</div>
+                    <div style="font-size:0.82rem; color:#6b7280;">📖 瀏覽教材</div><div style="font-size:0.82rem; font-weight:600; color:#2563eb;">34%</div>
+                    <div style="font-size:0.82rem; color:#6b7280;">📢 查看公告</div><div style="font-size:0.82rem; font-weight:600; color:#2563eb;">21%</div>
+                    <div style="font-size:0.82rem; color:#6b7280;">💬 討論參與</div><div style="font-size:0.82rem; font-weight:600; color:#2563eb;">19%</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
 <nav>
-    <div class="nav-brand">DataEdu<span>.</span></div>
+    <div class="nav-brand">數位學習行為預測系統<span>.</span></div>
     <ul class="nav-links">
-        <li><a href="#">模擬預測</a></li>
-        <li><a href="#">班級總覽</a></li>
-        <li><a href="#">說明文件</a></li>
+        <li><a onclick="openHelp()" style="cursor:pointer;">操作說明</a></li>
     </ul>
 </nav>
 
@@ -565,7 +684,7 @@
                 <div class="slider-group">
                     <div class="slider-header">
                         <span class="slider-title">🙋 舉手發問次數</span>
-                        <span class="max-badge">上限 <span id="max-raised">100</span></span>
+                        <label class="max-badge" title="點擊可修改上限">上限 <input class="max-input" id="max-raised" type="number" min="1" max="9999" value="100" oninput="updateMax('raised')"> <span class="max-edit-icon">✎</span></label>
                     </div>
                     <div class="slider-body">
                         <input type="range" id="raised" min="0" max="100" value="50" oninput="updateDashboard()">
@@ -576,7 +695,7 @@
                 <div class="slider-group">
                     <div class="slider-header">
                         <span class="slider-title">📖 瀏覽教材次數</span>
-                        <span class="max-badge">上限 <span id="max-visited">100</span></span>
+                        <label class="max-badge" title="點擊可修改上限">上限 <input class="max-input" id="max-visited" type="number" min="1" max="9999" value="100" oninput="updateMax('visited')"> <span class="max-edit-icon">✎</span></label>
                     </div>
                     <div class="slider-body">
                         <input type="range" id="visited" min="0" max="100" value="50" oninput="updateDashboard()">
@@ -587,7 +706,7 @@
                 <div class="slider-group">
                     <div class="slider-header">
                         <span class="slider-title">📢 查看公告次數</span>
-                        <span class="max-badge">上限 <span id="max-announcements">100</span></span>
+                        <label class="max-badge" title="點擊可修改上限">上限 <input class="max-input" id="max-announcements" type="number" min="1" max="9999" value="100" oninput="updateMax('announcements')"> <span class="max-edit-icon">✎</span></label>
                     </div>
                     <div class="slider-body">
                         <input type="range" id="announcements" min="0" max="100" value="50" oninput="updateDashboard()">
@@ -598,7 +717,7 @@
                 <div class="slider-group">
                     <div class="slider-header">
                         <span class="slider-title">💬 討論參與次數</span>
-                        <span class="max-badge">上限 <span id="max-discussion">100</span></span>
+                        <label class="max-badge" title="點擊可修改上限">上限 <input class="max-input" id="max-discussion" type="number" min="1" max="9999" value="100" oninput="updateMax('discussion')"> <span class="max-edit-icon">✎</span></label>
                     </div>
                     <div class="slider-body">
                         <input type="range" id="discussion" min="0" max="100" value="50" oninput="updateDashboard()">
@@ -709,6 +828,31 @@
 </div><!-- /page -->
 
 <script>
+    function updateMax(id) {
+        const input = document.getElementById(`max-${id}`);
+        const newMax = parseInt(input.value) || 1;
+        limits[id] = newMax;
+        const slider = document.getElementById(id);
+        slider.max = newMax;
+        if (parseInt(slider.value) > newMax) slider.value = newMax;
+        updateDashboard();
+    }
+
+    function openHelp() {
+        const m = document.getElementById('helpModal');
+        m.style.display = 'flex';
+    }
+
+    function closeModal(e) {
+        if (e.target === document.getElementById('helpModal')) {
+            document.getElementById('helpModal').style.display = 'none';
+        }
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') document.getElementById('helpModal').style.display = 'none';
+    });
+
     let systemReady = true;
     let limits = { raised: 100, visited: 100, announcements: 100, discussion: 100 };
 
@@ -755,7 +899,8 @@
             limits.discussion = maxD > 0 ? maxD : 100;
 
             ['raised','visited','announcements','discussion'].forEach(id => {
-                document.getElementById(`max-${id}`).textContent = limits[id];
+                const inp = document.getElementById(`max-${id}`);
+                inp.value = limits[id];
                 let el = document.getElementById(id);
                 el.max = limits[id];
                 el.value = Math.floor(limits[id] / 2);
