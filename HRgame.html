@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WorkChat - 遠距管理對話模擬器</title>
+    <style>
+        :root {
+            --primary-bg: #f3f4f6;
+            --sidebar-bg: #2c3e50;
+            --sidebar-hover: #34495e;
+            --sidebar-active: #2980b9;
+            --text-light: #ecf0f1;
+            --main-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --msg-emp: #ffffff;
+            --msg-boss: #dcf8c6;
+            --msg-sys: #e1f5fe;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; margin: 0; display: flex; height: 100vh; background-color: var(--primary-bg); overflow: hidden; }
+
+        /* 左側聯絡人列表 */
+        #sidebar { width: 320px; background-color: var(--sidebar-bg); color: var(--text-light); display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 10; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 20px; font-size: 1.2em; font-weight: bold; border-bottom: 1px solid var(--sidebar-hover); background: #1a252f; display: flex; justify-content: space-between; align-items: center;}
+        .contact-list { flex: 1; overflow-y: auto; }
+        .contact-item { padding: 18px 20px; cursor: pointer; border-bottom: 1px solid var(--sidebar-hover); transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .contact-item:hover { background-color: var(--sidebar-hover); }
+        .contact-item.active { background-color: var(--sidebar-active); border-left: 5px solid #3498db; }
+        .contact-info { display: flex; flex-direction: column; }
+        .contact-name { font-weight: bold; font-size: 1.1em; }
+        .contact-role { font-size: 0.85em; color: #bdc3c7; margin-top: 5px; }
+        .status-icon { font-size: 0.85em; padding: 3px 8px; border-radius: 12px; }
+        .status-pending { background: #f39c12; color: #fff; }
+        .status-done { background: #2ecc71; color: #fff; font-weight: bold; }
+
+        /* 右側主要聊天區 */
+        #main-area { flex: 1; display: flex; flex-direction: column; position: relative; background: var(--main-bg); transition: transform 0.3s ease; }
+        #chat-header { padding: 15px 20px; background: var(--main-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-height: 60px;}
+        
+        #back-btn { display: none; background: transparent; border: none; font-size: 1em; color: #3498db; font-weight: bold; cursor: pointer; padding: 10px; margin-left: -10px;}
+        #current-chat-title { font-size: 1.1em; font-weight: bold; color: #2c3e50; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px;}
+        
+        /* 總結按鈕 */
+        #report-btn { padding: 10px 15px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9em; display: none; }
+        #report-btn:hover { background-color: #c0392b; }
+        #mobile-report-btn { display: none; background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer;}
+        
+        #chat-history { flex: 1; padding: 20px; overflow-y: auto; background-color: #f8f9fa; display: flex; flex-direction: column; gap: 15px; }
+        .message { padding: 12px 15px; border-radius: 12px; max-width: 80%; line-height: 1.5; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; animation: fadeIn 0.3s ease-in-out;}
+        .msg-emp { background-color: var(--msg-emp); align-self: flex-start; border-top-left-radius: 0; border: 1px solid #e0e0e0; }
+        .msg-boss { background-color: var(--msg-boss); align-self: flex-end; border-top-right-radius: 0; }
+        .msg-sys { background-color: var(--msg-sys); color: #0277bd; align-self: center; text-align: center; font-size: 0.9em; width: 95%; border-radius: 8px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        #options-area { padding: 15px; background: var(--main-bg); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; }
+        .option-btn { width: 100%; text-align: left; padding: 15px; font-size: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.2s; line-height: 1.4; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
+        .option-btn:active { background: #f1f8ff; border-color: #3498db; }
+
+        /* 結算報告畫面 (改為 fixed 確保在最上層，不會被 transform 影響) */
+        #report-screen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; z-index: 9999; flex-direction: column; overflow-y: auto; padding: 20px; }
+        .report-card { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .report-card h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; font-size: 1.1em;}
+        .feedback-success { color: #27ae60; font-weight: bold; }
+        .feedback-fail { color: #e74c3c; font-weight: bold; }
+        .final-verdict { padding: 20px; background: #fff3cd; color: #856404; text-align: center; font-size: 1.1em; font-weight: bold; border-radius: 8px; margin-top: 15px; line-height: 1.5;}
+
+        /* ========= 手機版響應式設計 ========= */
+        @media (max-width: 768px) {
+            #sidebar { width: 100%; position: absolute; height: 100%; z-index: 5; }
+            #main-area { width: 100%; position: absolute; height: 100%; z-index: 1; transform: translateX(100%); }
+            
+            body.chat-active #sidebar { transform: translateX(-30%); opacity: 0; }
+            body.chat-active #main-area { transform: translateX(0); z-index: 10; }
+            
+            #back-btn { display: block; }
+            .message { max-width: 90%; }
+            #current-chat-title { font-size: 1em; }
+            
+            body.all-done #mobile-report-btn { display: block; }
+            #report-btn { display: none !important; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <span>💬 WorkChat</span>
+            <button id="mobile-report-btn" onclick="showReport()">看總結</button>
+        </div>
+        <div class="contact-list" id="contact-list"></div>
+    </div>
+
+    <div id="main-area">
+        <div id="chat-header">
+            <button id="back-btn" onclick="goBack()">⬅ 返回</button>
+            <span id="current-chat-title">請選擇員工</span>
+            <button id="report-btn" onclick="showReport()">產生總結</button>
+        </div>
+        
+        <div id="chat-history"></div>
+        <div id="options-area"></div>
+    </div>
+
+    <div id="report-screen">
+        <div style="max-width: 800px; margin: 0 auto; width: 100%;">
+            <h2 style="text-align: center; color: #2c3e50; margin-top: 10px;">📊 遠距管理成效報告</h2>
+            <div id="report-content"></div>
+            <button class="option-btn" style="background:#3498db; color:white; text-align:center; font-weight:bold; margin:20px 0;" onclick="location.reload()">重新進行模擬</button>
+        </div>
+    </div>
+
+    <script>
+        // 對話劇本與狀態資料
+        const gameData = [
+            {
+                id: 1,
+                name: "David",
+                role: "資深工程師",
+                theme: "科技與信任",
+                currentTurn: 0,
+                score: 0,
+                isDone: false,
+                history: [],
+                turns: [
+                    {
+                        empMsg: "主管，您找我？最近專案進度有點卡卡的，但我有在處理。",
+                        options: [
+                            { text: "我注意到你回覆很慢。公司建議我啟用「螢幕截圖與鍵盤追蹤」軟體來掌握你的真實產出。", val: 0 },
+                            { text: "我注意到進度變慢了。我們來看看專案的里程碑，有什麼我可以幫忙排除的障礙嗎？", val: 1 }
+                        ]
+                    },
+                    {
+                        empMsg: "其實最近是因為雲端協作工具有點問題...加上如果要被軟體截圖，感覺很不被信任...",
+                        options: [
+                            { text: "這是為了維持透明度，你可能是遇到了「數位落差」，我會強制安排你上雲端工具培訓課程。", val: 0 },
+                            { text: "別擔心，我不打算啟用監控軟體。我們實踐「電子領導力」，我基於你的產出來建立信任。", val: 1 }
+                        ]
+                    },
+                    {
+                        empMsg: "如果是這樣的話...那接下來的專案進度，主管希望我怎麼回報比較好？",
+                        options: [
+                            { text: "你每天早上參加 30 分鐘的視訊會議，我要確保你每天的進度與目標對齊。", val: 0 },
+                            { text: "我們改用任務追蹤看板，你完成階段性任務就更新上去，我看重的是最終結果。", val: 1 }
+                        ]
+                    }
+                ],
+                finalReply: "好的，主管，我知道了！"
+            },
+            {
+                id: 2,
+                name: "Mia",
+                role: "行銷企劃",
+                theme: "環境與福祉",
+                currentTurn: 0,
+                score: 0,
+                isDone: false,
+                history: [],
+                turns: [
+                    {
+                        empMsg: "主管...我最近覺得好累。居家辦公讓我分不清下班時間，連晚上都在回信，我覺得快要情感耗竭了。",
+                        options: [
+                            { text: "體恤你的辛勞，我動用預算為你添購符合人體工學的辦公桌椅與護眼檯燈吧。", val: 0 },
+                            { text: "你需要協助劃定時間邊界嗎？我們可以明確溝通「下班後不需即時回覆訊息」。", val: 1 }
+                        ]
+                    },
+                    {
+                        empMsg: "如果你能幫忙建立規範就太好了。我有時候覺得如果不馬上回訊息，大家會覺得我在偷懶...",
+                        options: [
+                            { text: "那不然我安排你每週參與兩次跨部門線上虛擬下午茶，去跟他們打好關係？", val: 0 },
+                            { text: "這點你不用擔心，我會確保團隊成員都理解並尊重彼此的下班休息時間。", val: 1 }
+                        ]
+                    },
+                    {
+                        empMsg: "謝謝主管...那我下班後是不是也該做些什麼調整？",
+                        options: [
+                            { text: "建議你這週五請一天特休放鬆充電，下週一再以原本的模式重新出發。", val: 0 },
+                            { text: "試著在下班後將工作設備移出休息空間，讓自己在物理與心理上都真正登出。", val: 1 }
+                        ]
+                    }
+                ],
+                finalReply: "太感謝了，主管，我知道了。"
+            },
+            {
+                id: 3,
+                name: "John",
+                role: "業務代表",
+                theme: "法律與合規",
+                currentTurn: 0,
+                score: 0,
+                isDone: false,
+                history: [],
+                turns: [
+                    {
+                        empMsg: "老闆，我這週跑去外州當起「數位游牧民族」了！我習慣半夜處理公事，白天補眠。",
+                        options: [
+                            { text: "尊重你的自主性。只要業績達標，作息隨便你。", val: 0 },
+                            { text: "跨州工作會有勞動法管轄權和稅務的問題，這需要跟 HR 與法務確認。", val: 1 }
+                        ]
+                    },
+                    {
+                        empMsg: "原來這麼複雜？那我都在半夜回客戶訊息，工時被切得很碎，這樣會有影響嗎？",
+                        options: [
+                            { text: "為了保護公司，你補簽一份自願放棄非標準工時加班費的切結書就好了。", val: 0 },
+                            { text: "工時碎片化會導致受僱主支配時間界線模糊，你必須確實使用系統記錄出勤。", val: 1 }
+                        ]
+                    },
+                    {
+                        empMsg: "那接下來我該怎麼做？要立刻停止跨州移動嗎？",
+                        options: [
+                            { text: "為了避免麻煩，我會先暫時將你調離這個能跨州移動的業務崗位。", val: 0 },
+                            { text: "我會去建立標準化的跨州工作審查機制，你在審查通過前必須先遵守既有出勤規範。", val: 1 }
+                        ]
+                    }
+                ],
+                finalReply: "了解，主管，我知道了。"
+            }
+        ];
+
+        let currentActiveId = null;
+
+        // 初始化左側名單
+        function renderSidebar() {
+            const listContainer = document.getElementById('contact-list');
+            listContainer.innerHTML = '';
+            let allDone = true;
+
+            gameData.forEach(contact => {
+                const item = document.createElement('div');
+                item.className = `contact-item ${currentActiveId === contact.id ? 'active' : ''}`;
+                item.onclick = () => loadChat(contact.id);
+                
+                const statusText = contact.isDone ? '✔ 完成' : (contact.currentTurn > 0 ? '對話中' : '待處理');
+                const statusClass = contact.isDone ? 'status-done' : 'status-pending';
+                if (!contact.isDone) allDone = false;
+
+                item.innerHTML = `
+                    <div class="contact-info">
+                        <span class="contact-name">${contact.name}</span>
+                        <span class="contact-role">${contact.role}</span>
+                    </div>
+                    <span class="status-icon ${statusClass}">${statusText}</span>
+                `;
+                listContainer.appendChild(item);
+            });
+
+            if (allDone) {
+                document.getElementById('report-btn').style.display = 'block';
+                document.body.classList.add('all-done');
+            }
+        }
+
+        // 載入對話視窗
+        function loadChat(contactId) {
+            currentActiveId = contactId;
+            renderSidebar();
+            
+            if (window.innerWidth <= 768) document.body.classList.add('chat-active');
+
+            const contact = gameData.find(c => c.id === contactId);
+            document.getElementById('current-chat-title').innerText = `${contact.name} (${contact.theme})`;
+            
+            const chatHistory = document.getElementById('chat-history');
+            const optionsArea = document.getElementById('options-area');
+            chatHistory.innerHTML = '';
+            optionsArea.innerHTML = '';
+
+            // 如果是第一次點開，推入第一句話
+            if (contact.history.length === 0 && !contact.isDone) {
+                contact.history.push({ sender: 'emp', text: contact.turns[0].empMsg });
+            }
+
+            // 渲染歷史對話
+            contact.history.forEach(msg => {
+                chatHistory.innerHTML += `<div class="message msg-${msg.sender}">${msg.text}</div>`;
+            });
+
+            // 判斷按鈕區要顯示什麼
+            if (contact.isDone) {
+                optionsArea.innerHTML = `<div class="msg-sys" style="margin:0 auto; padding:10px;">對話已結束。請點擊左上角「返回」處理其他任務。</div>`;
+            } else {
+                const currentOptions = contact.turns[contact.currentTurn].options;
+                currentOptions.forEach((opt, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt.text;
+                    btn.onclick = () => makeDecision(contact.id, opt.text, opt.val);
+                    optionsArea.appendChild(btn);
+                });
+            }
+            
+            // 捲動到底部
+            setTimeout(() => { chatHistory.scrollTop = chatHistory.scrollHeight; }, 50);
+        }
+
+        // 手機版返回
+        function goBack() {
+            document.body.classList.remove('chat-active');
+            currentActiveId = null;
+            renderSidebar();
+        }
+
+        // 玩家進行決策
+        function makeDecision(contactId, choiceText, scoreVal) {
+            const contact = gameData.find(c => c.id === contactId);
+            
+            // 記錄老闆的話與分數
+            contact.history.push({ sender: 'boss', text: choiceText });
+            contact.score += scoreVal;
+            contact.currentTurn++;
+
+            // 判斷是否還有下一輪
+            if (contact.currentTurn < contact.turns.length) {
+                // 模擬對方思考時間，延遲推入下一句話
+                setTimeout(() => {
+                    contact.history.push({ sender: 'emp', text: contact.turns[contact.currentTurn].empMsg });
+                    loadChat(contactId);
+                }, 400);
+            } else {
+                // 達到 3 輪，結束對話
+                contact.isDone = true;
+                setTimeout(() => {
+                    contact.history.push({ sender: 'emp', text: contact.finalReply });
+                    loadChat(contactId);
+                    renderSidebar(); // 更新名單狀態
+                }, 400);
+            }
+            // 點擊後立即刷新一次以顯示自己的對話
+            loadChat(contactId);
+        }
+
+        // 產生總結報告
+        function showReport() {
+            document.getElementById('report-screen').style.display = 'flex';
+            const content = document.getElementById('report-content');
+            content.innerHTML = '';
+            
+            let totalScore = 0;
+
+            gameData.forEach(contact => {
+                totalScore += contact.score;
+                let feedbackText = "";
+                let styleClass = "";
+
+                if (contact.name === "David") {
+                    if (contact.score === 3) { feedbackText = "你成功克服了主管的隱形焦慮。透過建立「電子領導力」，團隊效率顯著提升。"; styleClass = "feedback-success"; }
+                    else if (contact.score >= 1) { feedbackText = "你部分決策造成了員工的高認知負荷或通訊疲勞，雖然專案推進，但信任感未完全建立。"; styleClass = "feedback-fail"; }
+                    else { feedbackText = "過度監控與強制連線嚴重破壞了信任機制，侵害了員工自主性，導致強烈反彈。"; styleClass = "feedback-fail"; }
+                } else if (contact.name === "Mia") {
+                    if (contact.score === 3) { feedbackText = "主動介入協助劃定邊界，有效避免了「無法關機」引發的情感耗竭。"; styleClass = "feedback-success"; }
+                    else if (contact.score >= 1) { feedbackText = "你雖然提供了部分協助，但未能徹底解決角色邊界問題，員工仍有耗竭風險。"; styleClass = "feedback-fail"; }
+                    else { feedbackText = "給予錯誤的資源（如人體工學椅或社交活動），完全無助於改善界線模糊與超時工作問題。"; styleClass = "feedback-fail"; }
+                } else if (contact.name === "John") {
+                    if (contact.score === 3) { feedbackText = "釐清勞動法管轄權並建立審查機制，成功保護公司免於跨州稅務與工時訴訟風險。"; styleClass = "feedback-success"; }
+                    else if (contact.score >= 1) { feedbackText = "你雖然意識到問題，但處理手法（如隨意調職）可能引發政策不一致的歧視風險。"; styleClass = "feedback-fail"; }
+                    else { feedbackText = "放任工時碎片化且依賴無效的切結書，導致極高的合規與勞資集體訴訟風險。"; styleClass = "feedback-fail"; }
+                }
+
+                content.innerHTML += `
+                    <div class="report-card">
+                        <h3>${contact.name} - ${contact.theme} (得分: ${contact.score}/3)</h3>
+                        <p class="${styleClass}">▶ 綜合分析：<br>${feedbackText}</p>
+                    </div>
+                `;
+            });
+
+            // 最終總評估 (滿分9分)
+            let verdict = "";
+            if (totalScore === 9) {
+                verdict = "🌟 卓越表現！您不僅兼顧了團隊效率與員工福祉，還完美避開了遠端工作的法律陷阱。";
+            } else if (totalScore >= 5) {
+                verdict = "👍 表現優良。團隊運作順暢，但特定決策仍有優化空間，請留意隱藏的遠距管理地雷。";
+            } else {
+                verdict = "⚠️ 危機四伏。團隊面臨信任破裂、耗竭或訴訟風險。建議重新檢視遠距管理思維。";
+            }
+            content.innerHTML += `<div class="final-verdict">${verdict}</div>`;
+        }
+
+        // 初始化啟動
+        renderSidebar();
+    </script>
+</body>
+</html>
