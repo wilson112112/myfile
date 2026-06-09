@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WorkChat - 遠距管理對話模擬器</title>
+    <title>WorkChat - 遠距人資管理決策模擬</title>
     <style>
         :root {
             --primary-bg: #f3f4f6;
@@ -42,7 +42,6 @@
         #back-btn { display: none; background: transparent; border: none; font-size: 1em; color: #3498db; font-weight: bold; cursor: pointer; padding: 10px; margin-left: -10px;}
         #current-chat-title { font-size: 1.1em; font-weight: bold; color: #2c3e50; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px;}
         
-        /* 總結按鈕 */
         #report-btn { padding: 10px 15px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9em; display: none; }
         #report-btn:hover { background-color: #c0392b; }
         #mobile-report-btn { display: none; background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer;}
@@ -56,10 +55,10 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         #options-area { padding: 15px; background: var(--main-bg); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; }
-        .option-btn { width: 100%; text-align: left; padding: 15px; font-size: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.2s; line-height: 1.4; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
+        .option-btn { width: 100%; text-align: left; padding: 12px 15px; font-size: 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.2s; line-height: 1.4; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
         .option-btn:active { background: #f1f8ff; border-color: #3498db; }
 
-        /* 結算報告畫面 (改為 fixed 確保在最上層，不會被 transform 影響) */
+        /* 結算報告畫面 */
         #report-screen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; z-index: 9999; flex-direction: column; overflow-y: auto; padding: 20px; }
         .report-card { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
         .report-card h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; font-size: 1.1em;}
@@ -107,122 +106,129 @@
 
     <div id="report-screen">
         <div style="max-width: 800px; margin: 0 auto; width: 100%;">
-            <h2 style="text-align: center; color: #2c3e50; margin-top: 10px;">📊 遠距管理成效報告</h2>
+            <h2 style="text-align: center; color: #2c3e50; margin-top: 10px;">📊 遠距管理系統成效總結報告</h2>
             <div id="report-content"></div>
             <button class="option-btn" style="background:#3498db; color:white; text-align:center; font-weight:bold; margin:20px 0;" onclick="location.reload()">重新進行模擬</button>
         </div>
     </div>
 
     <script>
-        // 對話劇本與狀態資料
         const gameData = [
             {
                 id: 1,
                 name: "David",
-                role: "資深工程師",
-                theme: "科技與信任",
+                role: "科技部門主管",
                 currentTurn: 0,
                 score: 0,
+                maxScore: 4.5,
                 isDone: false,
                 history: [],
                 turns: [
                     {
-                        empMsg: "主管，您找我？最近專案進度有點卡卡的，但我有在處理。",
+                        empMsg: "我擔心遠距工作後在檢核員工績效時會變成說有黑箱作業，所以我打算用軟體記錄員工鍵盤滑鼠活躍度，您怎麼看？",
                         options: [
-                            { text: "我注意到你回覆很慢。公司建議我啟用「螢幕截圖與鍵盤追蹤」軟體來掌握你的真實產出。", val: 0 },
-                            { text: "我注意到進度變慢了。我們來看看專案的里程碑，有什麼我可以幫忙排除的障礙嗎？", val: 1 }
+                            { text: "我支持數據追蹤，這能建立客觀的指標，幫組織維持透明度並合理分配資源。", val: 0.4 },
+                            { text: "我建議取消工時追蹤，這會損害信任，可以改推動以交付成果來檢核。", val: 1 },
+                            { text: "我認為可以加入每天和遠距工作員工進行線上會議，以確保他們的工作。", val: 0 }
                         ]
                     },
                     {
-                        empMsg: "其實最近是因為雲端協作工具有點問題...加上如果要被軟體截圖，感覺很不被信任...",
+                        empMsg: "但若完全不監控遠距工作，主管們擔心團隊會失控，在工作產出不穩定，你可以給我一些建議嗎？",
                         options: [
-                            { text: "這是為了維持透明度，你可能是遇到了「數位落差」，我會強制安排你上雲端工具培訓課程。", val: 0 },
-                            { text: "別擔心，我不打算啟用監控軟體。我們實踐「電子領導力」，我基於你的產出來建立信任。", val: 1 }
+                            { text: "實踐電子領導力 (E-leadership)，引導主管與同仁建立明確的互信目標與配套溝通機制，而非盯緊在線時數。", val: 0.8 },
+                            { text: "利用 OKR 架構與數位里程碑檢核，不限制在線時間，只針對員工最終交付成果核銷。", val: 1 },
+                            { text: "那可以引入螢幕監控，來檢視員工在上班時是否有作其他無關的事。", val: 0 }
                         ]
                     },
                     {
-                        empMsg: "如果是這樣的話...那接下來的專案進度，主管希望我怎麼回報比較好？",
+                        empMsg: "因為實施遠端工作，所以員工的上班時間都不太一致，那你建議團隊可以怎麼回報進度呢?",
                         options: [
-                            { text: "你每天早上參加 30 分鐘的視訊會議，我要確保你每天的進度與目標對齊。", val: 0 },
-                            { text: "我們改用任務追蹤看板，你完成階段性任務就更新上去，我看重的是最終結果。", val: 1 }
+                            { text: "可以每周共同定義一個時間進行會議，讓團隊回報進度，同時員工也可以互相督促、交流。", val: 0 },
+                            { text: "全面改用專案看板非同步更新。除關鍵問題外不另外召開會議，可以讓員工完全專注於自己的工作時間。", val: 1.5 },
+                            { text: "要求員工撰寫工作日誌，主管可以後續查看，以確保員工的進度沒有落後。", val: 1 }
                         ]
                     }
                 ],
-                finalReply: "好的，主管，我知道了！"
+                finalReply: "好的，謝謝我知道了！我會配合團隊接下來的管理定位進行調整。"
             },
             {
                 id: 2,
                 name: "Mia",
-                role: "行銷企劃",
-                theme: "環境與福祉",
+                role: "行銷企劃主管",
                 currentTurn: 0,
                 score: 0,
+                maxScore: 3.0,
                 isDone: false,
                 history: [],
                 turns: [
                     {
-                        empMsg: "主管...我最近覺得好累。居家辦公讓我分不清下班時間，連晚上都在回信，我覺得快要情感耗竭了。",
+                        empMsg: "我在跨區招募遇到瓶頸，外地頂尖人才的預期薪資比總部標準高很多，那核薪策略可以怎麼制定？",
                         options: [
-                            { text: "體恤你的辛勞，我動用預算為你添購符合人體工學的辦公桌椅與護眼檯燈吧。", val: 0 },
-                            { text: "你需要協助劃定時間邊界嗎？我們可以明確溝通「下班後不需即時回覆訊息」。", val: 1 }
+                            { text: "建議還是依照總部的職等架構核薪，確保組織內部同職等薪資的一致性與公平。", val: 0.5 },
+                            { text: "建議可以打破地域限制，依據外部市場人才行情進行動態核薪，保持招募競爭力。", val: 1 },
+                            { text: "建議還是找本地員工，以方便核薪。", val: 0 }
                         ]
                     },
                     {
-                        empMsg: "如果你能幫忙建立規範就太好了。我有時候覺得如果不馬上回訊息，大家會覺得我在偷懶...",
+                        empMsg: "但若將地理位置納入核薪，不同城市消費水準差很多，要怎麼兼顧公平性又避免超出預算？",
                         options: [
-                            { text: "那不然我安排你每週參與兩次跨部門線上虛擬下午茶，去跟他們打好關係？", val: 0 },
-                            { text: "這點你不用擔心，我會確保團隊成員都理解並尊重彼此的下班休息時間。", val: 1 }
+                            { text: "讓應徵者自行開價，我們再依據個別專案與預算上限進行彈性的給薪水。", val: 0.5 },
+                            { text: "以底薪乘以員工居住地的『生活成本指數』進行標準化加權，建立制度化的跨區核薪公式。", val: 1 },
+                            { text: "建議為遠距工作者制定一套一致的核薪方式，大家都可以拿相同的薪水，既保障也不會超出預算。", val: 0 }
                         ]
                     },
                     {
-                        empMsg: "謝謝主管...那我下班後是不是也該做些什麼調整？",
+                        empMsg: "除了薪資，有同仁反映長期遠距工作，一些耗損品都要自付，不像實體的員工，可以享有較好的設備。",
                         options: [
-                            { text: "建議你這週五請一天特休放鬆充電，下週一再以原本的模式重新出發。", val: 0 },
-                            { text: "試著在下班後將工作設備移出休息空間，讓自己在物理與心理上都真正登出。", val: 1 }
+                            { text: "可以採取核准制的實報實銷，唯有員工提出具體符合職安防護的改造需求時，才給予個案補貼。", val: 0.7 },
+                            { text: "直接定期發放固定額度的設備補助金，讓員工自主改善硬體，視為留才的福利投資。", val: 0.8 },
+                            { text: "因為已經給與遠距工作者很大的自由了，所以他們必須犧牲一點福利。", val: 0.2 }
                         ]
                     }
                 ],
-                finalReply: "太感謝了，主管，我知道了。"
+                finalReply: "太感謝了，我知道了。這對我們招募與留才方向非常有幫助。"
             },
             {
                 id: 3,
                 name: "John",
-                role: "業務代表",
-                theme: "法律與合規",
+                role: "業務代表主管",
                 currentTurn: 0,
                 score: 0,
+                maxScore: 3.0,
                 isDone: false,
                 history: [],
                 turns: [
                     {
-                        empMsg: "老闆，我這週跑去外州當起「數位游牧民族」了！我習慣半夜處理公事，白天補眠。",
+                        empMsg: "我的員工們反映遠距溝通成本太高，花太多時間在即時通訊上打字跟等待回覆，可以怎麼改善？",
                         options: [
-                            { text: "尊重你的自主性。只要業績達標，作息隨便你。", val: 0 },
-                            { text: "跨州工作會有勞動法管轄權和稅務的問題，這需要跟 HR 與法務確認。", val: 1 }
+                            { text: "制定通訊回覆 SLA 規範（如兩小時內），加速資訊流轉速度，維持業務的推動。", val: 0 },
+                            { text: "全面推行『非同步溝通』。明文允許延遲回覆，減少訊息干擾以保障深層工作時間。", val: 1 },
+                            { text: "縮減即時軟體的使用，改用結構化電子郵件進行每週進度匯報，避免零碎訊息洗版。", val: 0.6 }
                         ]
                     },
                     {
-                        empMsg: "原來這麼複雜？那我都在半夜回客戶訊息，工時被切得很碎，這樣會有影響嗎？",
+                        empMsg: "那如果我允許員工延遲回覆，萬一工作流程卡住、不能馬上問同事，導致進度落後怎麼辦？",
                         options: [
-                            { text: "為了保護公司，你補簽一份自願放棄非標準工時加班費的切結書就好了。", val: 0 },
-                            { text: "工時碎片化會導致受僱主支配時間界線模糊，你必須確實使用系統記錄出勤。", val: 1 }
+                            { text: "規定每天下午設立 1 小時『線上協作時段』，大家必須在線，一起解決問題。", val: 0.4 },
+                            { text: "啟動『手冊優先策略』，要求流程高度文件化，遇到問題先查閱共享知識庫再執行。", val: 1 },
+                            { text: "建立一個線上社群，員工有任何疑難雜症都可以在社群上詢問。", val: 0.5 }
                         ]
                     },
                     {
-                        empMsg: "那接下來我該怎麼做？要立刻停止跨州移動嗎？",
+                        empMsg: "如果全面落實非同步溝通與流程文件化，主管擔心會逐漸失去對組織的向心力與日常掌控度，我們該如何協助管理者調適？",
                         options: [
-                            { text: "為了避免麻煩，我會先暫時將你調離這個能跨州移動的業務崗位。", val: 0 },
-                            { text: "我會去建立標準化的跨州工作審查機制，你在審查通過前必須先遵守既有出勤規範。", val: 1 }
+                            { text: "管理者應加強流程監管與每日進度督導，採取謹慎控制，防範完全放權導致混亂。", val: 0 },
+                            { text: "管理者應從『控制者』轉型為『促進者』，將決策權下放，轉而提供橫向自治的文化支持。", val: 1 },
+                            { text: "定期舉辦線上團隊凝聚力工作坊，讓主管在不干涉日常工作的原則下，維繫組織向心力。", val: 0.5 }
                         ]
                     }
                 ],
-                finalReply: "了解，主管，我知道了。"
+                finalReply: "了解我知道了，謝謝你的建議。"
             }
         ];
 
         let currentActiveId = null;
 
-        // 初始化左側名單
         function renderSidebar() {
             const listContainer = document.getElementById('contact-list');
             listContainer.innerHTML = '';
@@ -253,7 +259,6 @@
             }
         }
 
-        // 載入對話視窗
         function loadChat(contactId) {
             currentActiveId = contactId;
             renderSidebar();
@@ -261,26 +266,23 @@
             if (window.innerWidth <= 768) document.body.classList.add('chat-active');
 
             const contact = gameData.find(c => c.id === contactId);
-            document.getElementById('current-chat-title').innerText = `${contact.name} (${contact.theme})`;
+            document.getElementById('current-chat-title').innerText = `${contact.name} (${contact.role})`;
             
             const chatHistory = document.getElementById('chat-history');
             const optionsArea = document.getElementById('options-area');
             chatHistory.innerHTML = '';
             optionsArea.innerHTML = '';
 
-            // 如果是第一次點開，推入第一句話
             if (contact.history.length === 0 && !contact.isDone) {
                 contact.history.push({ sender: 'emp', text: contact.turns[0].empMsg });
             }
 
-            // 渲染歷史對話
             contact.history.forEach(msg => {
                 chatHistory.innerHTML += `<div class="message msg-${msg.sender}">${msg.text}</div>`;
             });
 
-            // 判斷按鈕區要顯示什麼
             if (contact.isDone) {
-                optionsArea.innerHTML = `<div class="msg-sys" style="margin:0 auto; padding:10px;">對話已結束。請點擊左上角「返回」處理其他任務。</div>`;
+                optionsArea.innerHTML = `<div class="msg-sys" style="margin:0 auto; padding:10px;">對話已結束。請返回處理其他任務。</div>`;
             } else {
                 const currentOptions = contact.turns[contact.currentTurn].options;
                 currentOptions.forEach((opt, index) => {
@@ -292,47 +294,45 @@
                 });
             }
             
-            // 捲動到底部
             setTimeout(() => { chatHistory.scrollTop = chatHistory.scrollHeight; }, 50);
         }
 
-        // 手機版返回
         function goBack() {
             document.body.classList.remove('chat-active');
             currentActiveId = null;
             renderSidebar();
         }
 
-        // 玩家進行決策
         function makeDecision(contactId, choiceText, scoreVal) {
             const contact = gameData.find(c => c.id === contactId);
             
-            // 記錄老闆的話與分數
             contact.history.push({ sender: 'boss', text: choiceText });
             contact.score += scoreVal;
             contact.currentTurn++;
 
-            // 判斷是否還有下一輪
             if (contact.currentTurn < contact.turns.length) {
-                // 模擬對方思考時間，延遲推入下一句話
                 setTimeout(() => {
                     contact.history.push({ sender: 'emp', text: contact.turns[contact.currentTurn].empMsg });
                     loadChat(contactId);
                 }, 400);
             } else {
-                // 達到 3 輪，結束對話
                 contact.isDone = true;
                 setTimeout(() => {
                     contact.history.push({ sender: 'emp', text: contact.finalReply });
                     loadChat(contactId);
-                    renderSidebar(); // 更新名單狀態
+                    renderSidebar();
+                    
+                    const checkAllDone = gameData.every(c => c.isDone);
+                    if (checkAllDone) {
+                        setTimeout(() => {
+                            showReport(); 
+                        }, 1200); 
+                    }
                 }, 400);
             }
-            // 點擊後立即刷新一次以顯示自己的對話
             loadChat(contactId);
         }
 
-        // 產生總結報告
         function showReport() {
             document.getElementById('report-screen').style.display = 'flex';
             const content = document.getElementById('report-content');
@@ -346,40 +346,60 @@
                 let styleClass = "";
 
                 if (contact.name === "David") {
-                    if (contact.score === 3) { feedbackText = "你成功克服了主管的隱形焦慮。透過建立「電子領導力」，團隊效率顯著提升。"; styleClass = "feedback-success"; }
-                    else if (contact.score >= 1) { feedbackText = "你部分決策造成了員工的高認知負荷或通訊疲勞，雖然專案推進，但信任感未完全建立。"; styleClass = "feedback-fail"; }
-                    else { feedbackText = "過度監控與強制連線嚴重破壞了信任機制，侵害了員工自主性，導致強烈反彈。"; styleClass = "feedback-fail"; }
+                    if (contact.score === 4.5) { 
+                        feedbackText = "🌟 【卓越決策】您完全廢除了無意義的線上軟體監控，成功導入 OKR 機制與非同步看板。團隊不再卡在『出席時間』的焦慮，DAVID 的資深工程團隊能擁有 100% 的自主權投入高效產出。"; 
+                        styleClass = "feedback-success"; 
+                    } else if (contact.score >= 1.5) { 
+                        feedbackText = "⚠️ 【轉型期】您的管理思維在放權與控制之間搖擺。雖然使用了里程碑，但仍然綁定核心在線時間或高頻率的每日例會，這容易對 DAVID 的團隊造成嚴重的通訊疲勞與高認知負荷。"; 
+                        styleClass = "feedback-fail"; 
+                    } else { 
+                        feedbackText = "❌ 【管理錯誤】您落入了『看不到人就無法管理』的盲點。強推滑鼠追蹤、螢幕監控或無意義的工時日誌，嚴重侵害員工自主性，導致團隊強烈反彈、績效急速下滑。"; 
+                        styleClass = "feedback-fail"; 
+                    }
                 } else if (contact.name === "Mia") {
-                    if (contact.score === 3) { feedbackText = "主動介入協助劃定邊界，有效避免了「無法關機」引發的情感耗竭。"; styleClass = "feedback-success"; }
-                    else if (contact.score >= 1) { feedbackText = "你雖然提供了部分協助，但未能徹底解決角色邊界問題，員工仍有耗竭風險。"; styleClass = "feedback-fail"; }
-                    else { feedbackText = "給予錯誤的資源（如人體工學椅或社交活動），完全無助於改善界線模糊與超時工作問題。"; styleClass = "feedback-fail"; }
+                    if (contact.score === 3) { 
+                        feedbackText = "🌟 【卓越決策】您精準導入透明薪資公式，並以『生活成本指數』進行標準化加權，同時定期發放固定硬體設備補助金。這能有效幫助 MIA 在全球人才爭奪戰中贏得頂尖技術人員，並實質提高 35% 的留任率。"; 
+                        styleClass = "feedback-success"; 
+                    } else if (contact.score >= 1) { 
+                        feedbackText = "⚠️ 【過渡風險】您雖然願意給予彈性，但手法偏向傳統職等限制或個案議價、個案申請審查。這容易導致管理政策實施缺乏一致性，引發團隊內部的公平性爭議與怨言。"; 
+                        styleClass = "feedback-fail"; 
+                    } else { 
+                        feedbackText = "❌ 【招募錯誤】您強推總部單一低標或乾脆找本地員工規避問題。這不僅讓 MIA 在招募市場上完全失去競争力，更會讓外地居家同仁因設備不佳產生肌肉骨骼疾病與嚴重的情感耗竭。"; 
+                        styleClass = "feedback-fail"; 
+                    }
                 } else if (contact.name === "John") {
-                    if (contact.score === 3) { feedbackText = "釐清勞動法管轄權並建立審查機制，成功保護公司免於跨州稅務與工時訴訟風險。"; styleClass = "feedback-success"; }
-                    else if (contact.score >= 1) { feedbackText = "你雖然意識到問題，但處理手法（如隨意調職）可能引發政策不一致的歧視風險。"; styleClass = "feedback-fail"; }
-                    else { feedbackText = "放任工時碎片化且依賴無效的切結書，導致極高的合規與勞資集體訴訟風險。"; styleClass = "feedback-fail"; }
+                    if (contact.score === 3) { 
+                        feedbackText = "🌟 【卓越決策】您成功推行非同步溝通與手冊優先策略，使工作流程高度文件化，並將管理者角色成功從控制者轉型為促進者。這能最大化深層工作時間，徹底釋放業務團隊的海外擴展產力。"; 
+                        styleClass = "feedback-success"; 
+                    } else if (contact.score >= 1.2) { 
+                        feedbackText = "⚠️ 【溝通失焦】您仍然高度依賴通訊 SLA 快回（兩小時內）或設立線上集中協作時段。這沒有從根本解決訊息洗版的問題，反而割裂了員工的深層專注時間，加劇工時碎片化與技術壓力。"; 
+                        styleClass = "feedback-fail"; 
+                    } else { 
+                        feedbackText = "❌ 【流程混亂】面對遠距溝通成本，您選擇回歸警慎的控制與每日進度督導，反對非同步。這種控制會引發嚴重的通訊疲勞，使團隊在面臨地域、跨時區協作時爆發溝通崩潰。"; 
+                        styleClass = "feedback-fail"; 
+                    }
                 }
 
                 content.innerHTML += `
                     <div class="report-card">
-                        <h3>${contact.name} - ${contact.theme} (得分: ${contact.score}/3)</h3>
-                        <p class="${styleClass}">▶ 綜合分析：<br>${feedbackText}</p>
+                        <h3>${contact.name} - ${contact.role} (實際得分: ${contact.score} / 滿分: ${contact.maxScore})</h3>
+                        <p class="${styleClass}">▶ 決策綜合評估：<br>${feedbackText}</p>
                     </div>
                 `;
             });
 
-            // 最終總評估 (滿分9分)
+            // 最終總評估 (總滿分為 4.5 + 3 + 3 = 10.5分)
             let verdict = "";
-            if (totalScore === 9) {
-                verdict = "🌟 卓越表現！您不僅兼顧了團隊效率與員工福祉，還完美避開了遠端工作的法律陷阱。";
-            } else if (totalScore >= 5) {
-                verdict = "👍 表現優良。團隊運作順暢，但特定決策仍有優化空間，請留意隱藏的遠距管理地雷。";
+            if (totalScore === 10.5) {
+                verdict = "🌟 卓越報告：您成功整合了系統理論，透過 McKinsey 7S 框架完美協調組織內部流程，在維持組織績效 (Performance) 的同時全面保障了員工福祉 (Well-being)，達成了高組織彈性的未來工作模式！";
+            } else if (totalScore >= 6.0) {
+                verdict = "👍 合格報告：團隊整體能夠適應變革趋势，但轉型過程 (Transformation Process) 中部分元素仍殘留傳統控制色彩，導致系統存在些微的溝通疲勞與認知負荷風險。";
             } else {
-                verdict = "⚠️ 危機四伏。團隊面臨信任破裂、耗竭或訴訟風險。建議重新檢視遠距管理思維。";
+                verdict = "⚠️ 危機報告：您的管理方式嚴重過時 (Obsolete)，組織正陷入信任破裂、同仁情感耗竭與微觀管理的惡性循環。請立刻重構您的電子領導力與結果導向系統！";
             }
             content.innerHTML += `<div class="final-verdict">${verdict}</div>`;
         }
 
-        // 初始化啟動
         renderSidebar();
     </script>
 </body>
