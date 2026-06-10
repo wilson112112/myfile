@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WorkChat - Remote HR Management Simulation</title>
+    <style>
+        :root {
+            --primary-bg: #f3f4f6;
+            --sidebar-bg: #2c3e50;
+            --sidebar-hover: #34495e;
+            --sidebar-active: #2980b9;
+            --text-light: #ecf0f1;
+            --main-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --msg-emp: #ffffff;
+            --msg-boss: #dcf8c6;
+            --msg-sys: #e1f5fe;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Helvetica Neue', sans-serif; margin: 0; display: flex; height: 100vh; background-color: var(--primary-bg); overflow: hidden; }
+
+        /* Left Sidebar - Contact List */
+        #sidebar { width: 320px; background-color: var(--sidebar-bg); color: var(--text-light); display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 10; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 20px; font-size: 1.2em; font-weight: bold; border-bottom: 1px solid var(--sidebar-hover); background: #1a252f; display: flex; justify-content: space-between; align-items: center;}
+        .contact-list { flex: 1; overflow-y: auto; }
+        .contact-item { padding: 18px 20px; cursor: pointer; border-bottom: 1px solid var(--sidebar-hover); transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .contact-item:hover { background-color: var(--sidebar-hover); }
+        .contact-item.active { background-color: var(--sidebar-active); border-left: 5px solid #3498db; }
+        .contact-info { display: flex; flex-direction: column; }
+        .contact-name { font-weight: bold; font-size: 1.1em; }
+        .contact-role { font-size: 0.85em; color: #bdc3c7; margin-top: 5px; }
+        .status-icon { font-size: 0.8em; padding: 3px 8px; border-radius: 12px; }
+        .status-pending { background: #f39c12; color: #fff; }
+        .status-done { background: #2ecc71; color: #fff; font-weight: bold; }
+
+        /* Right Main Area - Chat Window */
+        #main-area { flex: 1; display: flex; flex-direction: column; position: relative; background: var(--main-bg); transition: transform 0.3s ease; }
+        #chat-header { padding: 15px 20px; background: var(--main-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-height: 60px;}
+        
+        #back-btn { display: none; background: transparent; border: none; font-size: 1em; color: #3498db; font-weight: bold; cursor: pointer; padding: 10px; margin-left: -10px;}
+        #current-chat-title { font-size: 1.1em; font-weight: bold; color: #2c3e50; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px;}
+        
+        #report-btn { padding: 10px 15px; background-color: #010408; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9em; display: none; }
+        #report-btn:hover { background-color: #010408; }
+        #mobile-report-btn { display: none; background: #010408; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer;}
+        
+        #chat-history { flex: 1; padding: 20px; overflow-y: auto; background-color: #f8f9fa; display: flex; flex-direction: column; gap: 15px; }
+        .message { padding: 12px 15px; border-radius: 12px; max-width: 80%; line-height: 1.5; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; animation: fadeIn 0.3s ease-in-out;}
+        .msg-emp { background-color: var(--msg-emp); align-self: flex-start; border-top-left-radius: 0; border: 1px solid #e0e0e0; }
+        .msg-boss { background-color: var(--msg-boss); align-self: flex-end; border-top-right-radius: 0; }
+        .msg-sys { background-color: var(--msg-sys); color: #0277bd; align-self: center; text-align: center; font-size: 0.9em; width: 95%; border-radius: 8px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        #options-area { padding: 15px; background: var(--main-bg); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; }
+        .option-btn { width: 100%; text-align: left; padding: 12px 15px; font-size: 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.2s; line-height: 1.4; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
+        .option-btn:active { background: #f1f8ff; border-color: #3498db; }
+
+        /* Report Screen (Overlay Fixed) */
+        #report-screen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; z-index: 9999; flex-direction: column; overflow-y: auto; padding: 20px; }
+        .report-card { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .report-card h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; font-size: 1.1em;}
+        .feedback-success { color: #27ae60; font-weight: bold; }
+        .feedback-fail { color: #010408; font-weight: bold; }
+        .final-verdict { padding: 20px; background: #fff3cd; color: #856404; text-align: center; font-size: 1.1em; font-weight: bold; border-radius: 8px; margin-top: 15px; line-height: 1.5;}
+
+        /* Mobile Responsive Adjustments */
+        @media (max-width: 768px) {
+            #sidebar { width: 100%; position: absolute; height: 100%; z-index: 5; }
+            #main-area { width: 100%; position: absolute; height: 100%; z-index: 1; transform: translateX(100%); }
+            
+            body.chat-active #sidebar { transform: translateX(-30%); opacity: 0; }
+            body.chat-active #main-area { transform: translateX(0); z-index: 10; }
+            
+            #back-btn { display: block; }
+            .message { max-width: 90%; }
+            #current-chat-title { font-size: 1em; }
+            
+            body.all-done #mobile-report-btn { display: block; }
+            #report-btn { display: none !important; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <span>💬 WorkChat</span>
+            <button id="mobile-report-btn" onclick="showReport()">Summary</button>
+        </div>
+        <div class="contact-list" id="contact-list"></div>
+    </div>
+
+    <div id="main-area">
+        <div id="chat-header">
+            <button id="back-btn" onclick="goBack()">⬅ Back</button>
+            <span id="current-chat-title">Select an employee</span>
+            <button id="report-btn" onclick="showReport()">Summary</button>
+        </div>
+        
+        <div id="chat-history"></div>
+        <div id="options-area"></div>
+    </div>
+
+    <div id="report-screen">
+        <div style="max-width: 800px; margin: 0 auto; width: 100%;">
+            <h2 style="text-align: center; color: #2c3e50; margin-top: 10px;">📊 Remote Work Management Performance Report</h2>
+            <div id="report-content"></div>
+            <button class="option-btn" style="background:#3498db; color:white; text-align:center; font-weight:bold; margin:20px 0;" onclick="location.reload()">Restart Simulation</button>
+        </div>
+    </div>
+
+    <script>
+        // Fully English Script and Options Optimized for Rigor and Realism
+        const gameData = [
+            {
+                id: 1,
+                name: "David",
+                role: "IT Department Manager",
+                currentTurn: 0,
+                score: 0,
+                maxScore: 4.5,
+                isDone: false,
+                history: [],
+                turns: [
+                    {
+                        empMsg: "Management is worried that remote work will turn into a 'Performance Black Box' and lead to a trust crisis. I am planning to implement monitoring software to track keyboard and mouse activity. What do you think?",
+                        options: [
+                            { text: "I support data tracking. It establishes objective metrics, helps maintain transparency, and allows for efficient resource allocation.", val: 0.4 },
+                            { text: "I recommend abandoning attendance tracking. It damages trust; we should evaluate purely based on final deliverables instead.", val: 1 },
+                            { text: "I believe we should implement mandatory daily online check-in meetings with remote staff to secure visibility into their daily activities.", val: 0 }
+                        ]
+                    },
+                    {
+                        empMsg: "But if we don't monitor remote work at all, supervisors worry about losing control and encountering unstable outputs. Can you give me some guidance?",
+                        options: [
+                            { text: "Practice E-leadership. Guide managers to establish clear, mutually trusted goals and supportive communication frameworks rather than watching online hours.", val: 0.8 },
+                            { text: "Utilize an objective OKR framework and digital milestone check-ins. Ignore online hours entirely and evaluate purely on actual deliverables.", val: 1 },
+                            { text: "We could introduce continuous screen monitoring to audit whether employees are engaging in unrelated tasks during working hours.", val: 0 }
+                        ]
+                    },
+                    {
+                        empMsg: "Since remote working hours vary across the team, what type of progress reporting framework do you suggest?",
+                        options: [
+                            { text: "We can set a joint weekly meeting for the team to report progress, allowing employees to supervise and communicate with each other.", val: 0 },
+                            { text: "Completely switch to asynchronous updates on project boards. Avoid holding meetings unless critical issues arise, maximizing deep focus hours.", val: 1.5 },
+                            { text: "Require employees to write granular daily work logs so managers can review them later to ensure nobody falls behind.", val: 1 }
+                        ]
+                    }
+                ],
+                finalReply: "Understood! Thank you. I will align with our team's upcoming management strategy."
+            },
+            {
+                id: 2,
+                name: "Mia",
+                role: "Marketing Planning Manager",
+                currentTurn: 0,
+                score: 0,
+                maxScore: 3.0,
+                isDone: false,
+                history: [],
+                turns: [
+                    {
+                        empMsg: "We are facing severe bottlenecks in the global talent war. The salary expectations of top out-of-town talent are much higher than our headquarters' standards. How should we formulate our pay strategy?",
+                        options: [
+                            { text: "We should strictly adhere to our headquarters' existing pay grade structure to ensure absolute internal consistency and equity.", val: 0.5 },
+                            { text: "We must break geographical constraints and dynamically offer competitive salaries based on external market talent rates.", val: 1 },
+                            { text: "We should focus exclusively on hiring local candidates to keep payroll administration straightforward.", val: 0 }
+                        ]
+                    },
+                    {
+                        empMsg: "But if geography is factored into salary calculations, the cost of living varies wildly across cities. How can we ensure fairness while protecting our budget?",
+                        options: [
+                            { text: "Let applicants state their desired compensation, and then flexibly negotiate on a case-by-case basis depending on project budgets.", val: 0.5 },
+                            { text: "Multiply the base salary by the employee's local 'Cost of Living Index' to establish a systematic, transparent cross-border formula.", val: 1 },
+                            { text: "Establish a uniform remote salary policy where everyone gets paid the exact same rate regardless of their location.", val: 0 }
+                        ]
+                    },
+                    {
+                        empMsg: "Besides salary, team members complain that long-term remote workers have to pay for consumables out of pocket, unlike on-site employees who enjoy premium setups.",
+                        options: [
+                            { text: "We can implement an approval-based reimbursement system. Subsidies will only be granted for documented, valid occupational health needs.", val: 0.7 },
+                            { text: "Directly distribute a fixed, recurring home office equipment stipend, allowing employees to upgrade their workspaces autonomously.", val: 0.8 },
+                            { text: "Since remote workers already enjoy immense flexibility and freedom, they must compromise on certain traditional corporate benefits.", val: 0.2 }
+                        ]
+                    }
+                ],
+                finalReply: "Thank you so much! This clarifies our path forward for global recruitment and talent retention."
+            },
+            {
+                id: 3,
+                name: "John",
+                role: "Sales Representative Manager",
+                currentTurn: 0,
+                score: 0,
+                maxScore: 3.0,
+                isDone: false,
+                history: [],
+                turns: [
+                    {
+                        empMsg: "My team reports that remote communication costs are too high. They spend too much time typing on messengers and waiting for replies. How can we improve this?",
+                        options: [
+                            { text: "Establish a strict communication response SLA (e.g., within 2 hours) to accelerate information flow and maintain business agility.", val: 0 },
+                            { text: "Completely push for 'Asynchronous Communication.' Explicitly allow delayed replies to reduce constant interruptions and protect deep focus.", val: 1 },
+                            { text: "Reduce instant messaging usage and shift to structured weekly email updates to prevent fragmented messages from disrupting focus.", val: 0.6 }
+                        ]
+                    },
+                    {
+                        empMsg: "But if I allow delayed replies, what if a workflow gets stuck and they can't get immediate help from a colleague, causing project delays?",
+                        options: [
+                            { text: "Mandate a 1-hour 'Online Collaborative Block' every afternoon where everyone must be active to sync up and troubleshoot immediately.", val: 0.4 },
+                            { text: "Launch a 'Handbook-First Strategy' and require processes to be highly documented. Team members must check the shared knowledge base before asking.", val: 1 },
+                            { text: "Set up an open online community hub or discussion forum where employees can post their questions and troubleshoot together.", val: 0.5 }
+                        ]
+                    },
+                    {
+                        empMsg: "If asynchronous communication and documentation are fully implemented, managers worry about losing team cohesion and daily control. How can we help leaders adapt?",
+                        options: [
+                            { text: "Managers should reinforce process compliance and daily progress oversight, exercising careful micro-oversight to prevent chaos.", val: 0 },
+                            { text: "Managers must transition from 'Controllers' to 'Facilitators,' delegating operational decision-making and fostering horizontal autonomy.", val: 1 },
+                            { text: "Host regular virtual team-building and alignment workshops to maintain organizational cohesion without disrupting asynchronous workflows.", val: 0.5 }
+                        ]
+                    }
+                ],
+                finalReply: "Understood. Thank you for these excellent insights. This will help restructure our workflow."
+            }
+        ];
+
+        let currentActiveId = null;
+
+        function renderSidebar() {
+            const listContainer = document.getElementById('contact-list');
+            listContainer.innerHTML = '';
+            let allDone = true;
+
+            gameData.forEach(contact => {
+                const item = document.createElement('div');
+                item.className = `contact-item ${currentActiveId === contact.id ? 'active' : ''}`;
+                item.onclick = () => loadChat(contact.id);
+                
+                const statusText = contact.isDone ? '✔ Done' : (contact.currentTurn > 0 ? 'In Chat' : 'Pending');
+                const statusClass = contact.isDone ? 'status-done' : 'status-pending';
+                if (!contact.isDone) allDone = false;
+
+                item.innerHTML = `
+                    <div class="contact-info">
+                        <span class="contact-name">${contact.name}</span>
+                        <span class="contact-role">${contact.role}</span>
+                    </div>
+                    <span class="status-icon ${statusClass}">${statusText}</span>
+                `;
+                listContainer.appendChild(item);
+            });
+
+            if (allDone) {
+                document.getElementById('report-btn').style.display = 'block';
+                document.body.classList.add('all-done');
+            }
+        }
+
+        function loadChat(contactId) {
+            currentActiveId = contactId;
+            renderSidebar();
+            
+            if (window.innerWidth <= 768) document.body.classList.add('chat-active');
+
+            const contact = gameData.find(c => c.id === contactId);
+            document.getElementById('current-chat-title').innerText = `${contact.name} (${contact.role})`;
+            
+            const chatHistory = document.getElementById('chat-history');
+            const optionsArea = document.getElementById('options-area');
+            chatHistory.innerHTML = '';
+            optionsArea.innerHTML = '';
+
+            if (contact.history.length === 0 && !contact.isDone) {
+                contact.history.push({ sender: 'emp', text: contact.turns[0].empMsg });
+            }
+
+            contact.history.forEach(msg => {
+                chatHistory.innerHTML += `<div class="message msg-${msg.sender}">${msg.text}</div>`;
+            });
+
+            if (contact.isDone) {
+                optionsArea.innerHTML = `<div class="msg-sys" style="margin:0 auto; padding:10px;">Conversation ended. Please return to handle other tasks.</div>`;
+            } else {
+                const currentOptions = contact.turns[contact.currentTurn].options;
+                currentOptions.forEach((opt, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt.text;
+                    btn.onclick = () => makeDecision(contact.id, opt.text, opt.val);
+                    optionsArea.appendChild(btn);
+                });
+            }
+            
+            setTimeout(() => { chatHistory.scrollTop = chatHistory.scrollHeight; }, 50);
+        }
+
+        function goBack() {
+            document.body.classList.remove('chat-active');
+            currentActiveId = null;
+            renderSidebar();
+        }
+
+        function makeDecision(contactId, choiceText, scoreVal) {
+            const contact = gameData.find(c => c.id === contactId);
+            
+            contact.history.push({ sender: 'boss', text: choiceText });
+            contact.score += scoreVal;
+            contact.currentTurn++;
+
+            if (contact.currentTurn < contact.turns.length) {
+                setTimeout(() => {
+                    contact.history.push({ sender: 'emp', text: contact.turns[contact.currentTurn].empMsg });
+                    loadChat(contactId);
+                }, 400);
+            } else {
+                contact.isDone = true;
+                setTimeout(() => {
+                    contact.history.push({ sender: 'emp', text: contact.finalReply });
+                    loadChat(contactId);
+                    renderSidebar();
+                    
+                    const checkAllDone = gameData.every(c => c.isDone);
+                    if (checkAllDone) {
+                        setTimeout(() => {
+                            showReport(); 
+                        }, 1200); 
+                    }
+                }, 400);
+            }
+            loadChat(contactId);
+        }
+
+        function showReport() {
+            document.getElementById('report-screen').style.display = 'flex';
+            const content = document.getElementById('report-content');
+            content.innerHTML = '';
+            
+            let totalScore = 0;
+
+            gameData.forEach(contact => {
+                totalScore += contact.score;
+                let feedbackText = "";
+                let styleClass = "";
+
+                if (contact.name === "David") {
+                    if (contact.score === 4.5) { 
+                        feedbackText = "🌟 【Excellent Decision - Output-Oriented Trust】You completely eliminated invasive surveillance software and successfully deployed clear OKRs and asynchronous project boards. The team has shattered the 'Performance Black Box' and operates with 100% professional autonomy."; 
+                        styleClass = "feedback-success"; 
+                    } else if (contact.score >= 1.5) { 
+                        feedbackText = "⚠️ 【Transition Phase - Mixed Control】Your approach vacillates between empowerment and micromanagement. While utilizing milestones, you still bound employees to core online hours or mandatory daily syncs, subjecting the engineering team to high cognitive load and communication fatigue."; 
+                        styleClass = "feedback-fail"; 
+                    } else { 
+                        feedbackText = "❌ 【Management Failure - Bureaucratic Control】You fell into the trap of 'out of sight, out of management.' Enforcing surveillance tracking or mandatory work logs heavily violates employee autonomy, damaging organizational trust and plunging technical output."; 
+                        styleClass = "feedback-fail"; 
+                    }
+                } else if (contact.name === "Mia") {
+                    if (contact.score === 3) { 
+                        feedbackText = "🌟 【Excellent Decision - Strategic Talent Retention】You precisely deployed a transparent salary formula utilizing the 'Cost of Living Index' and coupled it with direct hardware equipment subsidies. This strategy secures highly competitive positioning in the global talent war and boosts high-value talent retention by 35%."; 
+                        styleClass = "feedback-success"; 
+                    } else if (contact.score >= 1) { 
+                        feedbackText = "⚠️ 【Transition Risks - Case-by-Case Friction】While granting regional flexibility, your approach relies on rigid grade restrictions or individual bargaining and approval loops. This lack of policy consistency risks triggering internal fairness disputes and employee discontent."; 
+                        styleClass = "feedback-fail"; 
+                    } else { 
+                        feedbackText = "❌ 【Recruitment Failure - Rigid Cost Containment】You forced a strict headquarters minimum wage standard or restricted hiring locally to avoid administrative complexity. This strips the firm of market competitiveness and subjects remote workers to technostress and emotional exhaustion due to deficient home workstations."; 
+                        styleClass = "feedback-fail"; 
+                    }
+                } else if (contact.name === "John") {
+                    if (contact.score === 3) { 
+                        feedbackText = "🌟 【Excellent Decision - Asynchronous Optimization】You successfully executed asynchronous communication and a Handbook-First strategy, making internal processes fully documented. Transitioning the manager's role from controller to facilitator maximizes deep focus hours and unleashes decentralized scaling efficiency."; 
+                        styleClass = "feedback-success"; 
+                    } else if (contact.score >= 1.2) { 
+                        feedbackText = "⚠️ 【Misaligned Focus - Messaging Dependency】You remain highly dependent on instant response SLAs or collaborative online blocks. This fails to address message flooding at its source, continually breaks employees' deep focus, and inflates technostress."; 
+                        styleClass = "feedback-fail"; 
+                    } else { 
+                        feedbackText = "❌ 【Process Chaos - Micromanagement Deadlock】Faced with high communication friction, you resorted to micro-oversight and daily progress policing while opposing asynchronous protocols. This dynamic triggers immense communication fatigue, causing distributed networks to collapse."; 
+                        styleClass = "feedback-fail"; 
+                    }
+                }
+
+                content.innerHTML += `
+                    <div class="report-card">
+                        <h3>${contact.name} - ${contact.role} (Score: ${contact.score.toFixed(1)} / Max: ${contact.maxScore.toFixed(1)})</h3>
+                        <p class="${styleClass}">▶ Practical Decision Evaluation:<br>${feedbackText}</p>
+                    </div>
+                `;
+            });
+
+            let verdict = "";
+            if (totalScore === 10.5) {
+                verdict = "🌟 Outstanding Executive Report: You seamlessly integrated systemic organizational theory. Utilizing the McKinsey 7S framework, you perfectly aligned internal processes to respond to PESTEL environmental shifts, securing sustainable performance while maximizing employee well-being!";
+            } else if (totalScore >= 6.0) {
+                verdict = "👍 Qualified Manager Report: The team successfully adapts to macro-environmental shifts. However, certain elements within the transformation process still mirror traditional control patterns, leaving minor vulnerabilities to communication fatigue and cognitive load.";
+            } else {
+                verdict = "⚠️ At-Risk Manager Report: Your management framework is critically obsolete. The organization is trapped in a vicious cycle of eroded trust, employee emotional exhaustion, and micromanagement. Immediate restructuring toward a result-oriented paradigm is required!";
+            }
+            content.innerHTML += `<div class="final-verdict">${verdict}</div>`;
+        }
+
+        renderSidebar();
+    </script>
+</body>
+</html>
